@@ -1,0 +1,32 @@
+# CLISYS Default Configuration
+# Copy this file to ~/.clisys/config.toml or .clisys/config.toml
+
+version = "1.0"
+
+# Adapter configurations
+[adapters.claude-code]
+enabled = true
+command = "claude"
+default_model = "claude-3-sonnet"
+
+[adapters.codex]
+enabled = true
+command = "codex"
+
+# Orchestrator settings
+[orchestrator]
+default_strategy = "capability_based"
+max_parallel_tasks = 3
+task_timeout = 300000  # 5 minutes
+
+# Logging settings
+[logging]
+level = "info"
+output = "console"
+pretty = true
+
+# Session settings
+[session]
+persistent = true
+storage_path = ".clisys/data"
+ttl = 86400000  # 24 hours

@@ -10,5 +10,11 @@
 // Core exports
 export * from './core/index.js';
 
+// Adapter exports
+export * from './adapters/index.js';
+
+// Loop exports
+export * from './loops/index.js';
+
 // Version
 export const VERSION = '0.1.0';

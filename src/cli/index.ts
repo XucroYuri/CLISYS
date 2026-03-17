@@ -2,57 +2,29 @@
 
 /**
  * CLISYS - Multi-CLI Intelligent Collaboration System
- * CLI Entry Point
+ * CLI Entry Point (Clipanion-based)
  */
 
-import { Command } from 'commander';
+import { Cli, Builtins } from 'clipanion';
+import { RunCommand, AdaptersCommand, ConfigCommand, ConfigShowCommand, ConfigInitCommand } from './commands/index.js';
 
-const program = new Command();
+// 创建 CLI 实例
+const cli = new Cli({
+  binaryLabel: 'CLISYS',
+  binaryName: 'clisys',
+  binaryVersion: '0.1.0',
+});
 
-program
-  .name('clisys')
-  .description('CLISYS - Multi-CLI Intelligent Collaboration System')
-  .version('0.1.0');
+// 注册命令
+cli.register(RunCommand);
+cli.register(AdaptersCommand);
+cli.register(ConfigCommand);
+cli.register(ConfigShowCommand);
+cli.register(ConfigInitCommand);
 
-// 基础命令占位
-program
-  .command('init')
-  .description('Initialize CLISYS configuration')
-  .action(() => {
-    console.log('CLISYS initialization coming soon...');
-  });
+// 注册内置命令 (help, version)
+cli.register(Builtins.HelpCommand);
+cli.register(Builtins.VersionCommand);
 
-program
-  .command('run <prompt>')
-  .description('Execute a task using available CLI adapters')
-  .option('-a, --adapter <name>', 'Specify adapter to use')
-  .option('-s, --strategy <type>', 'Dispatch strategy (capability_based, cost_optimized, performance_based)')
-  .action((prompt, options) => {
-    console.log(`Executing: ${prompt}`);
-    console.log(`Options: ${JSON.stringify(options)}`);
-    console.log('Execution engine coming soon...');
-  });
-
-program
-  .command('adapters')
-  .description('List available CLI adapters')
-  .action(() => {
-    console.log('Available adapters:');
-    console.log('  - claude-code (Claude Code by Anthropic)');
-    console.log('  - codex (Codex CLI by OpenAI)');
-    console.log('  - gemini (Gemini CLI by Google)');
-    console.log('  - opencode (OpenCode by SST)');
-    console.log('  - aider (Aider)');
-    console.log('\nAdapter implementation in progress...');
-  });
-
-program
-  .command('config')
-  .description('Manage CLISYS configuration')
-  .command('show')
-  .description('Show current configuration')
-  .action(() => {
-    console.log('Configuration display coming soon...');
-  });
-
-program.parse();
+// 运行 CLI
+cli.runExit(process.argv.slice(2));

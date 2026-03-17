@@ -4,7 +4,21 @@
       "Bash(gh repo create:*)",
       "Bash(git init:*)",
       "Bash(git remote add:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git branch:*)",
+      "Bash(git push:*)",
+      "mcp__zread__search_doc",
+      "mcp__zread__get_repo_structure",
+      "mcp__web-reader__webReader",
+      "mcp__zread__read_file",
+      "mcp__web-search-prime__web_search_prime",
+      "Bash(bun install:*)",
+      "Bash(bun run dev --help:*)",
+      "Bash(bun run typecheck:*)",
+      "Bash(timeout 5 bun src/cli/index.ts:*)",
+      "Bash(bun src/cli/index.ts adapters:*)",
+      "Bash(bun:*)"
     ]
   }
 }

@@ -11,7 +11,6 @@ import type {
   SubTask,
   Capability,
 } from '../adapter/types.js';
-import { v4 as uuidv4 } from 'crypto';
 
 // 任务类型关键词映射
 const TASK_TYPE_KEYWORDS: Record<TaskType, string[]> = {
