@@ -5,6 +5,9 @@
 
 import type { BaseAdapter } from './BaseAdapter.js';
 import type { Capability, HealthCheckResult, AdapterScore } from './types.js';
+import { createChildLogger } from '../logger/index.js';
+
+const logger = createChildLogger('adapter-registry');
 
 export interface RegistryOptions {
   healthCheckInterval?: number;
@@ -274,7 +277,7 @@ export class AdapterRegistry {
 
     const shutdownPromises = Array.from(this.adapters.values()).map((adapter) =>
       adapter.shutdown().catch((error) => {
-        console.error(`Failed to shutdown adapter "${adapter.name}":`, error);
+        logger.error({ adapter: adapter.name, error }, 'Failed to shutdown adapter');
       })
     );
 

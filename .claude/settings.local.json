@@ -18,7 +18,8 @@
       "Bash(bun run typecheck:*)",
       "Bash(timeout 5 bun src/cli/index.ts:*)",
       "Bash(bun src/cli/index.ts adapters:*)",
-      "Bash(bun:*)"
+      "Bash(bun:*)",
+      "Bash(find:*)"
     ]
   }
 }

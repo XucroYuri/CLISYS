@@ -27,6 +27,7 @@ const OrchestratorConfigSchema = z.object({
   defaultStrategy: z.enum(['capability_based', 'cost_optimized', 'performance_based', 'round_robin']).default('capability_based'),
   maxParallelTasks: z.number().int().min(1).max(10).default(3),
   taskTimeout: z.number().int().positive().default(300000),
+  fallbackEnabled: z.boolean().default(true),
 });
 
 const LoggingConfigSchema = z.object({
@@ -80,6 +81,7 @@ const DEFAULT_CONFIG: CLISYSConfig = {
     defaultStrategy: 'capability_based',
     maxParallelTasks: 3,
     taskTimeout: 300000,
+    fallbackEnabled: true,
   },
   logging: {
     level: 'info',
@@ -193,7 +195,8 @@ export function loadConfig(options: LoadOptions = {}): CLISYSConfig {
  * 获取默认配置
  */
 export function getDefaultConfig(): CLISYSConfig {
-  return { ...DEFAULT_CONFIG };
+  // Return a deep copy to prevent mutation
+  return JSON.parse(JSON.stringify(DEFAULT_CONFIG));
 }
 
 /**

@@ -170,6 +170,7 @@ export class Dispatcher {
 
   /**
    * 基于成本选择适配器
+   * 优先选择免费的适配器或按健康状态排序
    */
   private selectByCost(
     task: ParsedTask,
@@ -177,13 +178,44 @@ export class Dispatcher {
   ): AdapterScore[] {
     const scores = this.registry.scoreAdapters(task.requiredCapabilities);
 
-    // TODO: 实现成本计算逻辑
-    // 目前简单返回能力匹配的结果
-    return scores.filter((s) => s.score > 0);
+    // 获取适配器健康状态
+    const healthStatus = this.registry.getAllHealthStatus();
+
+    // 计算成本分数
+    const costScores = scores.map((score) => {
+      const health = healthStatus.get(score.adapterName);
+      let costScore = score.score;
+
+      // 如果优先免费选项，检查是否是免费模型
+      if (options?.preferFree) {
+        // 免费模型加分
+        const adapter = this.registry.get(score.adapterName);
+        if (adapter?.metadata?.defaultModel?.includes('haiku')) {
+          costScore += 30; // Haiku 是较便宜的
+        }
+      }
+
+      // 健康状态影响
+      if (health?.status === 'healthy') {
+        costScore += 10;
+      } else if (health?.status === 'degraded') {
+        costScore -= 5;
+      }
+
+      return {
+        ...score,
+        score: costScore,
+      };
+    });
+
+    return costScores
+      .filter((s) => s.score > 0)
+      .sort((a, b) => b.score - a.score);
   }
 
   /**
    * 基于性能选择适配器
+   * 根据响应时间和健康状态选择最快的适配器
    */
   private selectByPerformance(
     task: ParsedTask,
@@ -191,8 +223,40 @@ export class Dispatcher {
   ): AdapterScore[] {
     const scores = this.registry.scoreAdapters(task.requiredCapabilities);
 
-    // TODO: 实现性能评估逻辑
-    return scores.filter((s) => s.score > 0);
+    // 获取适配器健康状态
+    const healthStatus = this.registry.getAllHealthStatus();
+
+    // 计算性能分数
+    const perfScores = scores.map((score) => {
+      const health = healthStatus.get(score.adapterName);
+      let perfScore = score.score;
+
+      // 延迟加成（延迟越低分数越高）
+      if (health?.latency !== undefined) {
+        perfScore += Math.max(0, 100 - health.latency / 10);
+      }
+
+      // 健康状态加成
+      if (health?.status === 'healthy') {
+        perfScore += 20;
+      } else if (health?.status === 'degraded') {
+        perfScore += 5;
+      }
+
+      return {
+        ...score,
+        score: perfScore,
+      };
+    });
+
+    // 如果需要并行执行，返回所有有能力的适配器
+    if (options?.parallelExecution) {
+      return perfScores.filter((s) => s.score > 0);
+    }
+
+    return perfScores
+      .filter((s) => s.score > 0)
+      .sort((a, b) => b.score - a.score);
   }
 
   /**
