@@ -27,6 +27,8 @@ npm-debug.log*
 
 # Testing
 coverage/
+*.db-shm
+*.db-wal
 
 # CLISYS specific
 .clisys/
@@ -36,3 +38,14 @@ sessions/
 # Temporary files
 tmp/
 temp/
+
+# AI development tool configs (sensitive, local-only)
+.claude/
+.sisyphus/
+.cursor/
+.windsurf/
+.aider/
+
+# Local development notes and brainstorm docs (sensitive internal planning)
+docs/archive/
+docs/reference/
