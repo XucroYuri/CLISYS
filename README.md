@@ -41,7 +41,7 @@ User Request → CLISYS Orchestrator
             Collaborative Result
 ```
 
-> **Inspired by** [Oh My OpenAgent](https://github.com/openagentlabs/oh-my-openagent) (formerly Oh My OpenCode) — the idea that the AI CLI ecosystem deserves the same composability as shell environments like oh-my-zsh.
+> **Inspired by** [Oh My OpenAgent](https://github.com/code-yeongyu/oh-my-openagent) (formerly Oh My OpenCode) — the idea that the AI CLI ecosystem deserves the same composability as shell environments like oh-my-zsh.
 
 ---
 
