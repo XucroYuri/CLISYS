@@ -159,7 +159,7 @@ clisys/
 |--------|------|----------|------|
 | `claude-code` | ✅ 稳定 | [Claude Code](https://docs.anthropic.com/claude-code) | Anthropic 的编码助手 |
 | `codex` | ✅ 稳定 | [Codex CLI](https://github.com/openai/codex) | OpenAI 的 CLI 编码代理 |
-| `gemini` | 🔲 计划中 | [Gemini CLI](https://github.com/google-gemini/gemini-cli) | Google 的 CLI AI 工具 |
+| `gemini` | ✅ 稳定 | [Gemini CLI](https://github.com/google-gemini/gemini-cli) | Google 的 CLI AI 工具 |
 | `openagent` | 🔲 计划中 | [Oh My OpenAgent](https://github.com/openagentlabs/oh-my-openagent) | 可组合的代理框架 |
 | `aider` | 🔲 计划中 | [Aider](https://github.com/paul-gauthier/aider) | Git 感知的编码助手 |
 
