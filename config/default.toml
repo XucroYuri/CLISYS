@@ -13,6 +13,11 @@ default_model = "claude-3-sonnet"
 enabled = true
 command = "codex"
 
+[adapters.gemini]
+enabled = true
+command = "gemini"
+default_model = "gemini-2.0-flash"
+
 # Orchestrator settings
 [orchestrator]
 default_strategy = "capability_based"

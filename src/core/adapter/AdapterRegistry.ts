@@ -197,23 +197,60 @@ export class AdapterRegistry {
   }
 
   /**
-   * 执行所有适配器的健康检查
+   * 执行所有适配器的健康检查（并行执行，每个适配器3000ms超时）
    */
   async performHealthCheckAll(): Promise<Map<string, HealthCheckResult>> {
     const results = new Map<string, HealthCheckResult>();
+    const HEALTH_CHECK_TIMEOUT = 3000;
 
-    for (const name of this.adapters.keys()) {
-      try {
-        const result = await this.performHealthCheck(name);
-        results.set(name, result);
-      } catch (error) {
-        results.set(name, {
-          adapterName: name,
-          status: 'unhealthy',
-          message: error instanceof Error ? error.message : 'Unknown error',
-          timestamp: new Date(),
-        });
+    const healthCheckPromises = Array.from(this.adapters.keys()).map(async (name) => {
+      const adapter = this.adapters.get(name);
+      if (!adapter) {
+        return {
+          name,
+          result: {
+            adapterName: name,
+            status: 'unhealthy' as const,
+            message: 'Adapter not found',
+            timestamp: new Date(),
+          },
+        };
       }
+
+      const timeoutPromise = new Promise<{ name: string; result: HealthCheckResult }>((resolve) => {
+        setTimeout(() => {
+          resolve({
+            name,
+            result: {
+              adapterName: name,
+              status: 'unhealthy' as const,
+              message: 'Health check timed out after 3000ms',
+              timestamp: new Date(),
+            },
+          });
+        }, HEALTH_CHECK_TIMEOUT);
+      });
+
+      const healthCheckPromise = adapter.healthCheck()
+        .then((result) => ({ name, result }))
+        .catch((error) => ({
+          name,
+          result: {
+            adapterName: name,
+            status: 'unhealthy' as const,
+            message: error instanceof Error ? error.message : 'Unknown error',
+            timestamp: new Date(),
+          },
+        }));
+
+      return Promise.race([healthCheckPromise, timeoutPromise]);
+    });
+
+    const checkResults = await Promise.all(healthCheckPromises);
+
+    for (const { name, result } of checkResults) {
+      results.set(name, result);
+      this.healthStatus.set(name, result);
     }
 
     return results;
