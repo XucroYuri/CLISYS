@@ -20,6 +20,7 @@ export interface RalphLoopResult {
   finalOutput: string;
   totalDuration: number;
   completedAt: Date;
+  selectedResult: ExecutionResult | null;
 }
 
 /**
@@ -122,6 +123,7 @@ export class RalphLoop {
             finalOutput: result.output,
             totalDuration,
             completedAt: new Date(),
+            selectedResult: result,
           };
         }
 
@@ -160,6 +162,7 @@ export class RalphLoop {
       finalOutput: lastResult?.output ?? '',
       totalDuration,
       completedAt: new Date(),
+      selectedResult: lastResult ?? null,
     };
   }
 

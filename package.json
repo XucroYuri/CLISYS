@@ -10,7 +10,7 @@
   },
   "scripts": {
     "dev": "bun run --watch src/cli/index.ts",
-    "build": "bun build ./src/cli/index.ts --outdir ./dist --target node",
+    "build": "bun build ./src/cli/index.ts --outdir ./dist/cli --target bun",
     "test": "vitest",
     "test:coverage": "vitest --coverage",
     "lint": "eslint src --ext .ts",

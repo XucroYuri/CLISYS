@@ -14,7 +14,23 @@ import { getEventBus } from '../../core/bus/index.js';
 import { getLogger, setLogger, createLogger } from '../../core/logger/index.js';
 import { initDatabase } from '../../core/storage/index.js';
 import { getConfig } from '../../core/config/index.js';
-import type { DispatchStrategyType, CLISYSEvent } from '../../core/adapter/types.js';
+import type { CLISYSEvent } from '../../core/adapter/types.js';
+
+/**
+ * Normalized execution result across all execution modes
+ */
+interface NormalizedResult {
+  success: boolean;
+  output: string;
+  error?: string;
+  metadata?: {
+    totalTokens?: number;
+    totalDuration?: number;
+    adaptersUsed?: string[];
+    filesModified?: string[];
+    iterations?: number;
+  };
+}
 
 export class RunCommand extends Command {
   static paths = [['run']];
@@ -112,10 +128,7 @@ export class RunCommand extends Command {
         this.context.stdout.write(`📝 Subtasks: ${parsedTask.subtasks.length}\n\n`);
       }
 
-      // Determine dispatch strategy
-      const dispatchStrategy: DispatchStrategyType = (strategy as DispatchStrategyType) ?? config.orchestrator.defaultStrategy;
-
-      let result;
+      let result: NormalizedResult;
 
       if (parallel) {
         // Use Ultrawork mode - parallel execution
@@ -133,7 +146,13 @@ export class RunCommand extends Command {
 
         // Aggregate results
         const aggregator = new Aggregator();
-        result = aggregator.aggregate(dispatchResult.results);
+        const aggregated = aggregator.aggregate(dispatchResult.results);
+        result = {
+          success: aggregated.success,
+          output: aggregated.output,
+          error: aggregated.error,
+          metadata: aggregated.metadata,
+        };
       }
 
       // Output the result
@@ -145,8 +164,8 @@ export class RunCommand extends Command {
         this.context.stdout.write(`✅ Task completed successfully\n\n`);
         this.context.stdout.write(result.output + '\n');
 
-        if (result.metadata?.filesModified && (result.metadata.filesModified as string[]).length > 0) {
-          this.context.stdout.write(`\n📁 Files modified: ${(result.metadata.filesModified as string[]).join(', ')}\n`);
+        if (result.metadata?.filesModified && result.metadata.filesModified.length > 0) {
+          this.context.stdout.write(`\n📁 Files modified: ${result.metadata.filesModified.join(', ')}\n`);
         }
       } else {
         this.context.stdout.write(`❌ Task failed\n`);
@@ -267,7 +286,7 @@ export class RunCommand extends Command {
   /**
    * Execute in parallel (Ultrawork mode)
    */
-  private async executeParallel(prompt: string, verbose: boolean) {
+  private async executeParallel(prompt: string, verbose: boolean): Promise<NormalizedResult> {
     const { UltraworkLoop } = await import('../../loops/ultrawork.js');
 
     const adapters = this.registry!.getAll();
@@ -293,6 +312,8 @@ export class RunCommand extends Command {
 
     const loopResult = await loop.execute(prompt, adapters);
 
+    const filesModified = loopResult.selectedResult?.metadata?.filesModified ?? [];
+
     return {
       success: loopResult.success,
       output: loopResult.aggregatedOutput,
@@ -300,6 +321,7 @@ export class RunCommand extends Command {
       metadata: {
         adaptersUsed: loopResult.adapterUsed,
         totalDuration: loopResult.totalDuration,
+        filesModified,
       },
     };
   }
@@ -307,7 +329,7 @@ export class RunCommand extends Command {
   /**
    * Execute with Ralph Loop (iterative mode)
    */
-  private async executeRalphLoop(prompt: string, maxIterations: number, verbose: boolean) {
+  private async executeRalphLoop(prompt: string, maxIterations: number, verbose: boolean): Promise<NormalizedResult> {
     const { RalphLoop } = await import('../../loops/ralph.js');
 
     const adapters = this.registry!.getAll();
@@ -315,7 +337,7 @@ export class RunCommand extends Command {
       throw new Error('No adapters available');
     }
 
-    const adapter = adapters[0]; // Use first available adapter
+    const adapter = adapters[0];
 
     if (verbose) {
       this.context.stdout.write(`🔄 Iterative execution (max ${maxIterations} iterations)\n\n`);
@@ -333,6 +355,8 @@ export class RunCommand extends Command {
 
     const loopResult = await loop.execute(prompt, adapter);
 
+    const filesModified = loopResult.selectedResult?.metadata?.filesModified ?? [];
+
     return {
       success: loopResult.success,
       output: loopResult.finalOutput,
@@ -340,6 +364,7 @@ export class RunCommand extends Command {
       metadata: {
         iterations: loopResult.iterations,
         totalDuration: loopResult.totalDuration,
+        filesModified,
       },
     };
   }

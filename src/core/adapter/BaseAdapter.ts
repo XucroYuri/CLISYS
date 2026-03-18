@@ -55,6 +55,13 @@ export abstract class BaseAdapter {
     };
   }
 
+  /**
+   * Get adapter metadata (public accessor for metadata)
+   */
+  getMetadata(): AdapterMetadata {
+    return this.metadata;
+  }
+
   // ============================================================================
   // 生命周期方法（子类必须实现）
   // ============================================================================

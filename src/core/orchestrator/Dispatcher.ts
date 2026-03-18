@@ -178,22 +178,22 @@ export class Dispatcher {
   ): AdapterScore[] {
     const scores = this.registry.scoreAdapters(task.requiredCapabilities);
 
-    // 获取适配器健康状态
-    const healthStatus = this.registry.getAllHealthStatus();
+      // 获取适配器健康状态
+      const healthStatus = this.registry.getAllHealthStatus();
 
-    // 计算成本分数
-    const costScores = scores.map((score) => {
-      const health = healthStatus.get(score.adapterName);
-      let costScore = score.score;
+      // 计算成本分数
+      const costScores = scores.map((score) => {
+        const health = healthStatus.get(score.adapterName);
+        let costScore = score.score;
 
-      // 如果优先免费选项，检查是否是免费模型
-      if (options?.preferFree) {
-        // 免费模型加分
-        const adapter = this.registry.get(score.adapterName);
-        if (adapter?.metadata?.defaultModel?.includes('haiku')) {
-          costScore += 30; // Haiku 是较便宜的
+        // 如果优先免费选项，检查是否是免费模型
+        if (options?.preferFree) {
+          // 免费模型加分
+          const adapter = this.registry.get(score.adapterName);
+          if (adapter?.getMetadata()?.defaultModel?.includes('haiku')) {
+            costScore += 30; // Haiku 是较便宜的
+          }
         }
-      }
 
       // 健康状态影响
       if (health?.status === 'healthy') {
