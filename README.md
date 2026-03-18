@@ -193,7 +193,7 @@ User Prompt
 |---------|--------|----------|-------|
 | `claude-code` | ✅ Stable | [Claude Code](https://docs.anthropic.com/claude-code) | Anthropic's coding assistant |
 | `codex` | ✅ Stable | [Codex CLI](https://github.com/openai/codex) | OpenAI's CLI coding agent |
-| `gemini` | 🔲 Planned | [Gemini CLI](https://github.com/google-gemini/gemini-cli) | Google's CLI AI tool |
+| `gemini` | ✅ Stable | [Gemini CLI](https://github.com/google-gemini/gemini-cli) | Google's CLI AI tool |
 | `openagent` | 🔲 Planned | [Oh My OpenAgent](https://github.com/openagentlabs/oh-my-openagent) | Composable agent framework |
 | `aider` | 🔲 Planned | [Aider](https://github.com/paul-gauthier/aider) | Git-aware coding assistant |
 

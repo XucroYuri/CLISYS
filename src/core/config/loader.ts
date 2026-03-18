@@ -76,6 +76,10 @@ const DEFAULT_CONFIG: CLISYSConfig = {
       enabled: true,
       command: 'codex',
     },
+    gemini: {
+      enabled: true,
+      command: 'gemini',
+    },
   },
   orchestrator: {
     defaultStrategy: 'capability_based',

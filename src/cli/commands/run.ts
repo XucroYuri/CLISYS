@@ -10,6 +10,7 @@ import { Dispatcher } from '../../core/orchestrator/Dispatcher.js';
 import { Aggregator } from '../../core/orchestrator/Aggregator.js';
 import { createClaudeCodeAdapter } from '../../adapters/claude-code/index.js';
 import { createCodexAdapter } from '../../adapters/codex/index.js';
+import { createGeminiAdapter } from '../../adapters/gemini/index.js';
 import { getEventBus } from '../../core/bus/index.js';
 import { getLogger, setLogger, createLogger } from '../../core/logger/index.js';
 import { initDatabase } from '../../core/storage/index.js';
@@ -216,6 +217,10 @@ export class RunCommand extends Command {
 
     if (config.adapters['codex']?.enabled) {
       adaptersToRegister.push(createCodexAdapter());
+    }
+
+    if (config.adapters['gemini']?.enabled) {
+      adaptersToRegister.push(createGeminiAdapter());
     }
 
     // If specific adapter requested, only use that one
