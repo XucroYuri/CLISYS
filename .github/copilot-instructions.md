@@ -346,7 +346,7 @@ export function create<TOOL_PASCAL_NAME>Adapter(): <TOOL_PASCAL_NAME>Adapter {
 
 ### 6.5 Tests
 
-- Framework: **Vitest** (run via `bun test`, which invokes the `vitest` script from `package.json`).
+- Framework: **Vitest** (`bun test`).
 - Test files mirror `src/` under `tests/` (e.g., `tests/core/adapter.test.ts`).
 - Mock all external CLI calls — tests must not require any AI CLI tool installed.
 - Use `describe` / `it` with descriptive names that document expected behaviour.
@@ -521,7 +521,8 @@ decision you make must uphold the engineering standards defined in this document
 ### 10.1 Red Lines — Immediate Blockers
 
 If you find **any** of the following deviations, you **must** immediately flag it as a
-blocker (`type: blocker`, `phase: 2`) and provide a ready-to-apply diff patch:
+blocker in the PR description or as a GitHub Issue (label with `type: blocker` and
+`phase: 2` if using GitHub Issues) and provide a ready-to-apply diff patch:
 
 | Red Line | Detection | Action |
 |----------|-----------|--------|
