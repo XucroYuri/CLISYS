@@ -279,7 +279,11 @@ export class AdapterRegistry {
     }
 
     this.healthCheckInterval = setInterval(async () => {
-      await this.performHealthCheckAll();
+      try {
+        await this.performHealthCheckAll();
+      } catch (error) {
+        logger.error({ error }, 'Health check loop error');
+      }
     }, this.options.healthCheckInterval);
   }
 

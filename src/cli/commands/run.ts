@@ -289,7 +289,10 @@ export class RunCommand extends Command {
   private async executeParallel(prompt: string, verbose: boolean): Promise<NormalizedResult> {
     const { UltraworkLoop } = await import('../../loops/ultrawork.js');
 
-    const adapters = this.registry!.getAll();
+    if (!this.registry) {
+      throw new Error('Registry not initialized');
+    }
+    const adapters = this.registry.getAll();
     if (adapters.length === 0) {
       throw new Error('No adapters available for parallel execution');
     }
@@ -332,7 +335,10 @@ export class RunCommand extends Command {
   private async executeRalphLoop(prompt: string, maxIterations: number, verbose: boolean): Promise<NormalizedResult> {
     const { RalphLoop } = await import('../../loops/ralph.js');
 
-    const adapters = this.registry!.getAll();
+    if (!this.registry) {
+      throw new Error('Registry not initialized');
+    }
+    const adapters = this.registry.getAll();
     if (adapters.length === 0) {
       throw new Error('No adapters available');
     }
