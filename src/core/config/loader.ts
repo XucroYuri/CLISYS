@@ -140,8 +140,7 @@ export function saveToTOML(filePath: string, config: CLISYSConfig): void {
   }
 
   // 将配置转换为适合 TOML 的格式
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const tomlSafeConfig = JSON.parse(JSON.stringify(config)) as any;
+  const tomlSafeConfig = JSON.parse(JSON.stringify(config)) as Parameters<typeof TOML.stringify>[0];
   const content = TOML.stringify(tomlSafeConfig);
   fs.writeFileSync(absolutePath, content, 'utf-8');
 

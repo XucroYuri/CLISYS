@@ -263,7 +263,6 @@ export class Dispatcher {
    * 轮询选择适配器
    */
   private selectRoundRobin(task: ParsedTask): AdapterScore[] {
-    const allAdapters = this.registry.getAll();
     const scores = this.registry.scoreAdapters(task.requiredCapabilities);
 
     // 简单实现：返回所有可用的适配器

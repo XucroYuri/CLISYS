@@ -85,7 +85,7 @@ export class Aggregator {
    * 合并所有结果
    */
   private mergeResults(results: ExecutionResult[]): AggregatedResult {
-    const mergedOutput = results.map((r, i) => `=== ${r.adapterName} ===\n${r.output}`).join('\n\n');
+    const mergedOutput = results.map((r) => `=== ${r.adapterName} ===\n${r.output}`).join('\n\n');
     const successfulResults = results.filter(r => r.success);
     const first = successfulResults[0];
 
