@@ -4,16 +4,27 @@
  */
 
 import { Command, Option } from 'clipanion';
+import { createBuiltInAdapter, getEnabledBuiltInAdapterNames } from '../../adapters/catalog.js';
 import { AdapterRegistry } from '../../core/adapter/AdapterRegistry.js';
+import { BaseAdapter } from '../../core/adapter/BaseAdapter.js';
 import { TaskParser } from '../../core/orchestrator/TaskParser.js';
 import { Dispatcher } from '../../core/orchestrator/Dispatcher.js';
 import { Aggregator } from '../../core/orchestrator/Aggregator.js';
-import { createClaudeCodeAdapter } from '../../adapters/claude-code/index.js';
-import { createCodexAdapter } from '../../adapters/codex/index.js';
 import { getEventBus } from '../../core/bus/index.js';
 import { getLogger, setLogger, createLogger } from '../../core/logger/index.js';
 import { initDatabase } from '../../core/storage/index.js';
 import { getConfig } from '../../core/config/index.js';
+import { discoverPlugins } from '../../core/plugins/discovery.js';
+import type { LoadedPluginModule } from '../../core/plugins/loader.js';
+import type { PluginManifest } from '../../core/plugins/manifest.js';
+import { ProviderRegistry } from '../../core/providers/registry.js';
+import { BrewProvider } from '../../core/providers/brew.js';
+import { NpmProvider } from '../../core/providers/npm.js';
+import { PipxProvider } from '../../core/providers/pipx.js';
+import { CargoProvider } from '../../core/providers/cargo.js';
+import { BinaryProvider } from '../../core/providers/binary.js';
+import { ToolchainManager } from '../../core/toolchain/manager.js';
+import type { ProviderRequest, ProviderScope } from '../../core/providers/types.js';
 import type { CLISYSEvent } from '../../core/adapter/types.js';
 
 /**
@@ -50,19 +61,19 @@ export class RunCommand extends Command {
 
   prompt = Option.String({ required: true });
 
-  adapter = Option.String('-a, --adapter', {
+  adapter = Option.String('-a,--adapter', {
     description: 'Specify adapter to use (claude-code, codex, etc.)',
   });
 
-  strategy = Option.String('-s, --strategy', {
+  strategy = Option.String('-s,--strategy', {
     description: 'Dispatch strategy (capability_based, cost_optimized, performance_based)',
   });
 
-  parallel = Option.Boolean('-p, --parallel', false, {
+  parallel = Option.Boolean('-p,--parallel', false, {
     description: 'Run multiple adapters in parallel (ultrawork mode)',
   });
 
-  verbose = Option.Boolean('-v, --verbose', false, {
+  verbose = Option.Boolean('-v,--verbose', false, {
     description: 'Enable verbose output',
   });
 
@@ -136,6 +147,8 @@ export class RunCommand extends Command {
       } else if (maxIterations && maxIterations > 1) {
         // Use Ralph Loop mode - iterative execution
         result = await this.executeRalphLoop(parsedTask.description, maxIterations, verbose);
+      } else if (adapter) {
+        result = await this.executeWithRequestedAdapter(parsedTask.description, verbose);
       } else {
         // Standard dispatch
         const dispatchResult = await this.dispatcher.dispatch(parsedTask);
@@ -207,31 +220,43 @@ export class RunCommand extends Command {
       healthCheckInterval: 60000,
     });
 
-    // Register adapters
-    const adaptersToRegister = [];
+    const discoveredPlugins = await discoverPlugins(config.plugins.directories, {
+      hostVersion: '0.1.0',
+      pluginApiVersion: '1.0.0',
+      platform: process.platform,
+      architecture: process.arch,
+      runtime: typeof Bun !== 'undefined' ? 'bun' : 'node',
+    });
 
-    if (config.adapters['claude-code']?.enabled) {
-      adaptersToRegister.push(createClaudeCodeAdapter());
-    }
+    const requestedPlugin = this.adapter
+      ? discoveredPlugins.find((plugin) => plugin.manifest.identity.id === this.adapter)
+      : undefined;
 
-    if (config.adapters['codex']?.enabled) {
-      adaptersToRegister.push(createCodexAdapter());
-    }
+    if (requestedPlugin) {
+      const pluginAdapter = await this.createPluginAdapter(requestedPlugin);
+      await this.registry.register(pluginAdapter);
+      logger.info({ adapter: pluginAdapter.name }, 'Plugin adapter registered');
+    } else {
+      const adapterNamesToRegister = getEnabledBuiltInAdapterNames(
+        config.adapters,
+        this.adapter
+      );
 
-    // If specific adapter requested, only use that one
-    if (this.adapter) {
-      const adapterConfig = config.adapters[this.adapter];
-      if (!adapterConfig?.enabled) {
-        throw new Error(`Adapter "${this.adapter}" is not enabled or not found`);
+      if (adapterNamesToRegister.length === 0) {
+        throw new Error('No enabled adapters are configured');
       }
-    }
 
-    for (const adapter of adaptersToRegister) {
-      try {
-        await this.registry.register(adapter);
-        logger.info({ adapter: adapter.name }, 'Adapter registered');
-      } catch (error) {
-        logger.warn({ adapter: adapter.name, error }, 'Failed to register adapter');
+      for (const adapterName of adapterNamesToRegister) {
+        const adapter = createBuiltInAdapter(
+          adapterName,
+          config.adapters[adapterName]
+        );
+        try {
+          await this.registry.register(adapter);
+          logger.info({ adapter: adapter.name }, 'Adapter registered');
+        } catch (error) {
+          logger.warn({ adapter: adapter.name, error }, 'Failed to register adapter');
+        }
       }
     }
 
@@ -252,6 +277,154 @@ export class RunCommand extends Command {
 
     this.initialized = true;
     logger.info('Execution engine initialized');
+  }
+
+  private async executeWithRequestedAdapter(
+    prompt: string,
+    verbose: boolean
+  ): Promise<NormalizedResult> {
+    if (!this.registry) {
+      throw new Error('Registry not initialized');
+    }
+
+    const adapters = this.registry.getAll();
+    if (adapters.length !== 1) {
+      throw new Error('Requested adapter execution requires exactly one registered adapter');
+    }
+
+    const adapter = adapters[0];
+    if (verbose) {
+      this.context.stdout.write(`✓ Using requested adapter directly: ${adapter.name}\n`);
+    }
+
+    const result = await adapter.execute({
+      taskId: `direct-${Date.now()}`,
+      prompt,
+      context: {
+        workingDirectory: process.cwd(),
+      },
+      options: {
+        timeout: getConfig().orchestrator.taskTimeout,
+      },
+    });
+
+    return {
+      success: result.success,
+      output: result.output,
+      error: result.error,
+      metadata: {
+        adaptersUsed: [adapter.name],
+        totalDuration: result.duration,
+        filesModified: result.metadata?.filesModified,
+      },
+    };
+  }
+
+  private async createPluginAdapter(plugin: LoadedPluginModule): Promise<BaseAdapter> {
+    const providerRegistry = new ProviderRegistry({
+      allowlist: ['brew', 'npm', 'pipx', 'cargo', 'binary'],
+    });
+    providerRegistry.register(new BrewProvider());
+    providerRegistry.register(new NpmProvider());
+    providerRegistry.register(new PipxProvider());
+    providerRegistry.register(new CargoProvider());
+    providerRegistry.register(new BinaryProvider());
+
+    const toolchainManager = new ToolchainManager(providerRegistry);
+    const request = this.createProviderRequestFromPlugin(plugin.manifest);
+    const ensureResult = await toolchainManager.ensureToolchain(request);
+
+    if (ensureResult.state.state === 'awaiting_confirmation') {
+      throw new Error(
+        `Plugin "${plugin.manifest.identity.id}" requires confirmation before toolchain installation`
+      );
+    }
+
+    if (ensureResult.state.state !== 'active') {
+      throw new Error(
+        `Plugin "${plugin.manifest.identity.id}" toolchain is not active (state: ${ensureResult.state.state})`
+      );
+    }
+
+    const adapter = plugin.factory();
+    if (!(adapter instanceof BaseAdapter)) {
+      throw new Error(
+        `Plugin "${plugin.manifest.identity.id}" factory must return a BaseAdapter instance`
+      );
+    }
+
+    return adapter;
+  }
+
+  private createProviderRequestFromPlugin(manifest: PluginManifest): ProviderRequest {
+    const { install } = manifest;
+
+    if (install.npm) {
+      return {
+        pluginId: manifest.identity.id,
+        toolId: manifest.identity.id,
+        scope: 'user',
+        platform: process.platform,
+        architecture: process.arch,
+        locator: install.npm.packageName,
+        binaryName: install.npm.bin ?? manifest.identity.id,
+      };
+    }
+
+    if (install.pipx) {
+      return {
+        pluginId: manifest.identity.id,
+        toolId: manifest.identity.id,
+        scope: 'user',
+        platform: process.platform,
+        architecture: process.arch,
+        locator: install.pipx.packageName,
+        binaryName: manifest.identity.id,
+      };
+    }
+
+    if (install.cargo) {
+      return {
+        pluginId: manifest.identity.id,
+        toolId: manifest.identity.id,
+        scope: 'user',
+        platform: process.platform,
+        architecture: process.arch,
+        locator: install.cargo.crateName,
+        binaryName: install.cargo.binaryName ?? manifest.identity.id,
+      };
+    }
+
+    if (install.binary) {
+      return {
+        pluginId: manifest.identity.id,
+        toolId: manifest.identity.id,
+        scope: 'user',
+        platform: process.platform,
+        architecture: process.arch,
+        locator: install.binary.url,
+        binaryName: install.binary.filename ?? manifest.identity.id,
+        checksum: install.binary.checksum,
+      };
+    }
+
+    if (install.brew) {
+      const locator = install.brew.tap
+        ? `${install.brew.tap}/${install.brew.formula}`
+        : install.brew.formula;
+
+      return {
+        pluginId: manifest.identity.id,
+        toolId: manifest.identity.id,
+        scope: 'system' satisfies ProviderScope,
+        platform: process.platform,
+        architecture: process.arch,
+        locator,
+        binaryName: manifest.identity.id,
+      };
+    }
+
+    throw new Error(`Plugin "${manifest.identity.id}" does not declare a supported install method`);
   }
 
   /**

@@ -10,7 +10,7 @@
 [![Version](https://img.shields.io/badge/version-0.1.0-orange.svg)](package.json)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)](https://www.typescriptlang.org/)
 [![Bun](https://img.shields.io/badge/Bun-latest-black.svg)](https://bun.sh/)
-[![Tests](https://img.shields.io/badge/tests-24%2F24_passing-brightgreen.svg)](#testing)
+[![Tests](https://img.shields.io/badge/tests-147%2F147_passing-brightgreen.svg)](#testing)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 [English](README.md) · [中文](README.zh-CN.md) · [Roadmap](docs/roadmap.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)
@@ -72,7 +72,7 @@ User Request → CLISYS Orchestrator
 | 📊 **Result Aggregation** | Merge, vote, or select-best from multiple adapter outputs |
 | ⚙️ **Flexible Configuration** | TOML-based config with Zod validation and multi-level override |
 | 💾 **Session Persistence** | SQLite + Drizzle ORM for execution history and session state |
-| 🔌 **Extensible Adapter System** | Clean `BaseAdapter` interface — add any CLI tool in minutes |
+| 🔌 **Plugin-First Adapter System** | Built-in adapters plus plugin discovery, manifests, provider backends, toolchain gating, and maintenance workflows |
 | 🏗️ **Event-Driven Core** | EventBus for monitoring, debugging, and hook integration |
 
 ---
@@ -82,7 +82,7 @@ User Request → CLISYS Orchestrator
 ### Prerequisites
 
 - [Bun](https://bun.sh/) ≥ 1.0 or Node.js ≥ 20
-- At least one supported AI CLI tool installed (e.g. `claude`, `codex`)
+- At least one supported AI CLI tool installed (e.g. `claude`, `codex`, `gemini`)
 
 ### Installation
 
@@ -130,20 +130,24 @@ clisys/
 │   ├── core/
 │   │   ├── orchestrator/     # TaskParser, Dispatcher, Aggregator, LoopManager
 │   │   ├── adapter/          # BaseAdapter, AdapterRegistry
+│   │   ├── plugins/          # Manifest schema, loader, discovery, SDK
+│   │   ├── providers/        # brew/npm/pipx/cargo/binary provider backends
+│   │   ├── toolchain/        # Policy gate, state, locks, manager, audit, maintenance
 │   │   ├── bus/              # EventBus
 │   │   ├── config/           # Configuration loader & validator
 │   │   ├── logger/           # Pino-based structured logging
 │   │   └── storage/          # SQLite session & execution history
 │   ├── adapters/
 │   │   ├── claude-code/      # Claude Code adapter
-│   │   └── codex/            # OpenAI Codex CLI adapter
+│   │   ├── codex/            # OpenAI Codex CLI adapter
+│   │   └── gemini/           # Google Gemini CLI adapter
 │   ├── loops/
 │   │   ├── ralph.ts          # Self-referential iterative loop
 │   │   └── ultrawork.ts      # Parallel multi-adapter loop
 │   └── cli/
 │       ├── commands/         # run, adapters, config commands
 │       └── index.ts          # CLI entry point (Clipanion)
-├── tests/                    # Vitest test suite (24+ tests)
+├── tests/                    # Vitest test suite (147 tests)
 ├── docs/
 │   ├── design/               # Architecture & design documents
 │   └── roadmap.md            # Development roadmap
@@ -193,11 +197,11 @@ User Prompt
 |---------|--------|----------|-------|
 | `claude-code` | ✅ Stable | [Claude Code](https://docs.anthropic.com/claude-code) | Anthropic's coding assistant |
 | `codex` | ✅ Stable | [Codex CLI](https://github.com/openai/codex) | OpenAI's CLI coding agent |
-| `gemini` | 🔲 Planned | [Gemini CLI](https://github.com/google-gemini/gemini-cli) | Google's CLI AI tool |
+| `gemini` | ✅ Available | [Gemini CLI](https://github.com/google-gemini/gemini-cli) | Google's CLI AI tool |
 | `openagent` | 🔲 Planned | [Oh My OpenAgent](https://github.com/openagentlabs/oh-my-openagent) | Composable agent framework |
 | `aider` | 🔲 Planned | [Aider](https://github.com/paul-gauthier/aider) | Git-aware coding assistant |
 
-**Adding a new adapter** is straightforward — extend `BaseAdapter` and register it. See [docs/design/architecture.md](docs/design/architecture.md) and [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+**Adding a new adapter** now supports a plugin-first path: publish a `@clisys/adapter-*` package with a validated manifest, dynamic entrypoint, and provider-backed toolchain metadata, or continue using built-in adapters where appropriate. See [docs/design/architecture.md](docs/design/architecture.md) and [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
 ---
 
@@ -267,6 +271,13 @@ command  = "claude"
 enabled = true
 command  = "codex"
 
+[adapters.gemini]
+enabled = true
+command  = "gemini"
+
+[plugins]
+directories = ["./plugins"]
+
 [orchestrator]
 default_strategy   = "capability_based"   # capability_based | cost_based | performance | round_robin
 max_parallel_tasks = 3
@@ -285,8 +296,8 @@ See [docs/roadmap.md](docs/roadmap.md) for the full technical roadmap. Summary:
 
 | Phase | Version | Focus |
 |-------|---------|-------|
-| Phase 1 ✅ | v0.1.0 | MVP — core orchestration, two adapters, loops, storage |
-| Phase 2 🔄 | v0.2.x | Extended adapters (Gemini, OpenAgent, Aider) |
+| Phase 1 ✅ | v0.1.0 | MVP — core orchestration, three built-in adapters, loops, storage |
+| Phase 2 🔄 | v0.2.x | Extended adapters (OpenAgent, Aider) |
 | Phase 3 📋 | v0.3.x | Plugin architecture, streaming output, score caching |
 | Phase 4 📋 | v0.5.x | Enterprise features: permissions, sandbox, audit log |
 | Phase 5 📋 | v1.0.0 | Public release, SDK, community ecosystem |
@@ -328,7 +339,7 @@ CLISYS builds on the shoulders of giants. The following projects directly inspir
 |------|------------|-------|
 | Claude Code | [Anthropic docs](https://docs.anthropic.com/claude-code) | Primary adapter |
 | Codex CLI | [openai/codex](https://github.com/openai/codex) | Primary adapter |
-| Gemini CLI | [google-gemini/gemini-cli](https://github.com/google-gemini/gemini-cli) | Planned |
+| Gemini CLI | [google-gemini/gemini-cli](https://github.com/google-gemini/gemini-cli) | Available |
 | Aider | [paul-gauthier/aider](https://github.com/paul-gauthier/aider) | Planned |
 | Oh My OpenAgent | [openagentlabs/oh-my-openagent](https://github.com/openagentlabs/oh-my-openagent) | Planned |
 
@@ -388,7 +399,7 @@ As the project matures toward v1.0, the maintainers may evaluate a dual-licensin
 | Metric | Status |
 |--------|--------|
 | Build | ✅ Passing |
-| Tests | ✅ 24/24 passing |
+| Tests | ✅ 75/75 passing |
 | TypeScript | ✅ Strict mode, 0 errors |
 | Version | 0.1.0 (MVP) |
 | Stability | Beta — API may change before v1.0 |

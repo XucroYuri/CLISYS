@@ -4,6 +4,9 @@
  */
 
 import { Command, Option } from 'clipanion';
+import { getAdapterDisplayEntries } from '../../adapters/catalog.js';
+import { discoverPlugins } from '../../core/plugins/discovery.js';
+import { getConfig } from '../../core/config/index.js';
 
 export class AdaptersCommand extends Command {
   static paths = [['adapters'], ['adapter']];
@@ -22,87 +25,25 @@ export class AdaptersCommand extends Command {
 
   async execute() {
     const { show } = this;
-
-    // 预定义的适配器信息
-    const adapters = [
-      {
-        name: 'claude-code',
-        displayName: 'Claude Code',
-        provider: 'Anthropic',
-        description: 'Official Claude CLI for coding tasks',
-        capabilities: [
-          'code_generation',
-          'code_editing',
-          'code_review',
-          'debugging',
-          'refactoring',
-          'documentation',
-          'testing',
-          'analysis',
-          'search',
-          'git_integration',
-          'file_operations',
-          'shell_execution',
-        ],
-        enabled: true,
-        status: 'available',
-      },
-      {
-        name: 'codex',
-        displayName: 'Codex CLI',
-        provider: 'OpenAI',
-        description: 'OpenAI Codex CLI for code generation',
-        capabilities: [
-          'code_generation',
-          'code_editing',
-          'debugging',
-          'analysis',
-        ],
-        enabled: true,
-        status: 'available',
-      },
-      {
-        name: 'gemini',
-        displayName: 'Gemini CLI',
-        provider: 'Google',
-        description: 'Google Gemini CLI for AI-assisted coding',
-        capabilities: [
-          'code_generation',
-          'code_editing',
-          'multi_modal',
-          'long_context',
-        ],
-        enabled: false,
-        status: 'planned',
-      },
-      {
-        name: 'opencode',
-        displayName: 'OpenCode',
-        provider: 'SST',
-        description: 'Open source coding assistant',
-        capabilities: [
-          'code_generation',
-          'code_editing',
-          'interactive',
-        ],
-        enabled: false,
-        status: 'planned',
-      },
-      {
-        name: 'aider',
-        displayName: 'Aider',
-        provider: 'Community',
-        description: 'AI pair programming in your terminal',
-        capabilities: [
-          'code_generation',
-          'code_editing',
-          'git_integration',
-          'interactive',
-        ],
-        enabled: false,
-        status: 'planned',
-      },
-    ];
+    const config = getConfig();
+    const builtInAdapters = getAdapterDisplayEntries(config.adapters);
+    const discoveredPlugins = await discoverPlugins(config.plugins.directories, {
+      hostVersion: '0.1.0',
+      pluginApiVersion: '1.0.0',
+      platform: process.platform,
+      architecture: process.arch,
+      runtime: typeof Bun !== 'undefined' ? 'bun' : 'node',
+    });
+    const pluginAdapters = discoveredPlugins.map((plugin) => ({
+      name: plugin.manifest.identity.id,
+      displayName: plugin.manifest.identity.displayName,
+      provider: plugin.manifest.identity.provider,
+      description: plugin.manifest.identity.description,
+      capabilities: plugin.manifest.adapter.capabilities,
+      status: 'available' as const,
+      enabled: true,
+    }));
+    const adapters = [...builtInAdapters, ...pluginAdapters];
 
     if (show) {
       const adapter = adapters.find(a => a.name === show);
@@ -129,8 +70,9 @@ export class AdaptersCommand extends Command {
     this.context.stdout.write('\nAvailable CLI Adapters\n');
     this.context.stdout.write('=======================\n\n');
 
-    const enabled = adapters.filter(a => a.enabled);
-    const disabled = adapters.filter(a => !a.enabled);
+    const enabled = adapters.filter((adapter) => adapter.status === 'available' && adapter.enabled);
+    const disabled = adapters.filter((adapter) => adapter.status === 'available' && !adapter.enabled);
+    const planned = adapters.filter((adapter) => adapter.status === 'planned');
 
     if (enabled.length > 0) {
       this.context.stdout.write('Enabled:\n');
@@ -143,6 +85,13 @@ export class AdaptersCommand extends Command {
     if (disabled.length > 0) {
       this.context.stdout.write('\nAvailable (not enabled):\n');
       disabled.forEach(adapter => {
+        this.context.stdout.write(`  ○ ${adapter.name.padEnd(15)} - ${adapter.description}\n`);
+      });
+    }
+
+    if (planned.length > 0) {
+      this.context.stdout.write('\nPlanned:\n');
+      planned.forEach((adapter) => {
         this.context.stdout.write(`  ○ ${adapter.name.padEnd(15)} - ${adapter.description}\n`);
       });
     }

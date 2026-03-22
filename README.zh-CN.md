@@ -10,7 +10,7 @@
 [![Version](https://img.shields.io/badge/version-0.1.0-orange.svg)](package.json)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)](https://www.typescriptlang.org/)
 [![Bun](https://img.shields.io/badge/Bun-latest-black.svg)](https://bun.sh/)
-[![Tests](https://img.shields.io/badge/tests-24%2F24_passing-brightgreen.svg)](#测试)
+[![Tests](https://img.shields.io/badge/tests-147%2F147_passing-brightgreen.svg)](#测试)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 [English](README.md) · [中文](README.zh-CN.md) · [路线图](docs/roadmap.md) · [贡献指南](CONTRIBUTING.md) · [安全政策](SECURITY.md)
@@ -72,7 +72,7 @@ CLISYS **不是**又一个 AI CLI 工具。它是一个**元 CLI 编排器** —
 | 📊 **结果聚合** | 合并、投票或从多个适配器输出中选择最佳结果 |
 | ⚙️ **灵活配置** | 基于 TOML 的配置，支持 Zod 验证和多层级覆盖 |
 | 💾 **会话持久化** | SQLite + Drizzle ORM 用于执行历史和会话状态 |
-| 🔌 **可扩展适配器系统** | 简洁的 `BaseAdapter` 接口 —— 几分钟内即可添加任意 CLI 工具 |
+| 🔌 **插件优先适配器系统** | 内建适配器 + 插件发现 + manifest 校验 + provider backend + toolchain gating |
 | 🏗️ **事件驱动核心** | EventBus 用于监控、调试和钩子集成 |
 
 ---
@@ -82,7 +82,7 @@ CLISYS **不是**又一个 AI CLI 工具。它是一个**元 CLI 编排器** —
 ### 前置条件
 
 - [Bun](https://bun.sh/) ≥ 1.0 或 Node.js ≥ 20
-- 至少安装一个支持的 AI CLI 工具（例如 `claude`、`codex`）
+- 至少安装一个支持的 AI CLI 工具（例如 `claude`、`codex`、`gemini`）
 
 ### 安装
 
@@ -130,20 +130,24 @@ clisys/
 │   ├── core/
 │   │   ├── orchestrator/     # TaskParser、Dispatcher、Aggregator、LoopManager
 │   │   ├── adapter/          # BaseAdapter、AdapterRegistry
+│   │   ├── plugins/          # Manifest schema、loader、discovery、SDK
+│   │   ├── providers/        # brew/npm/pipx/cargo/binary provider backend
+│   │   ├── toolchain/        # Policy gate、state、locks、manager、audit、maintenance
 │   │   ├── bus/              # EventBus
 │   │   ├── config/           # 配置加载器和验证器
 │   │   ├── logger/           # 基于 Pino 的结构化日志
 │   │   └── storage/          # SQLite 会话和执行历史
 │   ├── adapters/
 │   │   ├── claude-code/      # Claude Code 适配器
-│   │   └── codex/            # OpenAI Codex CLI 适配器
+│   │   ├── codex/            # OpenAI Codex CLI 适配器
+│   │   └── gemini/           # Google Gemini CLI 适配器
 │   ├── loops/
 │   │   ├── ralph.ts          # 自我迭代优化循环
 │   │   └── ultrawork.ts      # 并行多适配器循环
 │   └── cli/
 │       ├── commands/         # run、adapters、config 命令
 │       └── index.ts          # CLI 入口点（Clipanion）
-├── tests/                    # Vitest 测试套件（24+ 个测试）
+├── tests/                    # Vitest 测试套件（147 个测试）
 ├── docs/
 │   ├── design/               # 架构和设计文档
 │   └── roadmap.md            # 开发路线图
@@ -159,11 +163,11 @@ clisys/
 |--------|------|----------|------|
 | `claude-code` | ✅ 稳定 | [Claude Code](https://docs.anthropic.com/claude-code) | Anthropic 的编码助手 |
 | `codex` | ✅ 稳定 | [Codex CLI](https://github.com/openai/codex) | OpenAI 的 CLI 编码代理 |
-| `gemini` | 🔲 计划中 | [Gemini CLI](https://github.com/google-gemini/gemini-cli) | Google 的 CLI AI 工具 |
+| `gemini` | ✅ 已支持 | [Gemini CLI](https://github.com/google-gemini/gemini-cli) | Google 的 CLI AI 工具 |
 | `openagent` | 🔲 计划中 | [Oh My OpenAgent](https://github.com/openagentlabs/oh-my-openagent) | 可组合的代理框架 |
 | `aider` | 🔲 计划中 | [Aider](https://github.com/paul-gauthier/aider) | Git 感知的编码助手 |
 
-**添加新适配器**非常简单 —— 扩展 `BaseAdapter` 并注册即可。详见 [docs/design/architecture.md](docs/design/architecture.md) 和 [CONTRIBUTING.md](CONTRIBUTING.md)。
+**添加新适配器**现在支持插件优先路径：发布 `@clisys/adapter-*` 包并提供 manifest、动态入口和 provider-backed toolchain 元数据，或者继续使用内建适配器方式。详见 [docs/design/architecture.md](docs/design/architecture.md) 和 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 ---
 
@@ -209,6 +213,10 @@ command  = "claude"
 enabled = true
 command  = "codex"
 
+[adapters.gemini]
+enabled = true
+command  = "gemini"
+
 [orchestrator]
 default_strategy   = "capability_based"   # capability_based | cost_based | performance | round_robin
 max_parallel_tasks = 3
@@ -227,8 +235,8 @@ output = "console" # console | file
 
 | 阶段 | 版本 | 重点 |
 |------|------|------|
-| 第一阶段 ✅ | v0.1.0 | MVP — 核心编排、两个适配器、循环机制、存储 |
-| 第二阶段 🔄 | v0.2.x | 扩展适配器（Gemini、OpenAgent、Aider） |
+| 第一阶段 ✅ | v0.1.0 | MVP — 核心编排、三个内建适配器、循环机制、存储 |
+| 第二阶段 🔄 | v0.2.x | 扩展适配器（OpenAgent、Aider） |
 | 第三阶段 📋 | v0.3.x | 插件架构、流式输出、评分缓存 |
 | 第四阶段 📋 | v0.5.x | 企业功能：权限控制、沙箱、审计日志 |
 | 第五阶段 📋 | v1.0.0 | 公开发布、SDK、社区生态系统 |
