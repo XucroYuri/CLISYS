@@ -26,7 +26,7 @@ export class ConfigCommand extends Command {
     description: 'Initialize default configuration file',
   });
 
-  output = Option.String('-o, --output', {
+  output = Option.String('-o,--output', {
     description: 'Output file path for --init',
   });
 
@@ -118,7 +118,7 @@ export class ConfigInitCommand extends Command {
     description: 'Initialize default configuration file',
   });
 
-  output = Option.String('-o, --output', {
+  output = Option.String('-o,--output', {
     description: 'Output file path',
   });
 

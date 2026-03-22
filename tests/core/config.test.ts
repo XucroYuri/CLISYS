@@ -61,6 +61,8 @@ describe('Config Loader', () => {
     expect(config.adapters['claude-code']).toBeDefined();
     expect(config.adapters['claude-code'].enabled).toBe(true);
     expect(config.adapters['codex']).toBeDefined();
+    expect(config.adapters['gemini']).toBeDefined();
+    expect(config.adapters['gemini'].enabled).toBe(true);
   });
 
   it('should have correct default orchestrator config', () => {
@@ -69,5 +71,11 @@ describe('Config Loader', () => {
     expect(config.orchestrator.defaultStrategy).toBe('capability_based');
     expect(config.orchestrator.maxParallelTasks).toBe(3);
     expect(config.orchestrator.taskTimeout).toBe(300000);
+  });
+
+  it('should default plugin directories to an empty list', () => {
+    const config = getDefaultConfig();
+
+    expect(config.plugins.directories).toEqual([]);
   });
 });

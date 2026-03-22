@@ -16,6 +16,11 @@ import { $ } from 'bun';
 
 const logger = createChildLogger('gemini-adapter');
 
+interface GeminiAdapterOptions {
+  command?: string;
+  defaultModel?: string;
+}
+
 /**
  * Gemini 适配器元数据
  */
@@ -45,6 +50,13 @@ const GEMINI_METADATA: AdapterMetadata = {
   ],
 };
 
+function createGeminiMetadata(defaultModel?: string): AdapterMetadata {
+  return {
+    ...GEMINI_METADATA,
+    defaultModel: defaultModel ?? GEMINI_METADATA.defaultModel,
+  };
+}
+
 /**
  * Gemini 输出解析结果
  */
@@ -59,11 +71,13 @@ interface ParsedOutput {
  * Gemini 适配器
  */
 export class GeminiAdapter extends BaseAdapter {
+  private command: string;
   private commandPath: string | null = null;
   private initialized = false;
 
-  constructor() {
-    super(GEMINI_METADATA);
+  constructor(options: GeminiAdapterOptions = {}) {
+    super(createGeminiMetadata(options.defaultModel));
+    this.command = options.command?.trim() || 'gemini';
   }
 
   /**
@@ -75,20 +89,27 @@ export class GeminiAdapter extends BaseAdapter {
     }
 
     try {
-      const result = await $`which gemini`.quiet();
+      if (this.command.includes('/')) {
+        this.commandPath = this.command;
+        logger.info({ path: this.commandPath }, 'Gemini CLI configured with explicit path');
+        this.initialized = true;
+        return;
+      }
+
+      const result = await $`which ${this.command}`.quiet().nothrow();
 
       if (result.exitCode === 0) {
         this.commandPath = result.text().trim();
         logger.info({ path: this.commandPath }, 'Gemini CLI found');
       } else {
-        logger.warn('Gemini CLI not found in PATH');
-        this.commandPath = 'gemini';
+        logger.warn({ command: this.command }, 'Gemini CLI not found in PATH');
+        this.commandPath = this.command;
       }
 
       this.initialized = true;
     } catch (error) {
       logger.warn({ error }, 'Gemini CLI initialization warning');
-      this.commandPath = 'gemini';
+      this.commandPath = this.command;
       this.initialized = true;
     }
   }
@@ -107,7 +128,7 @@ export class GeminiAdapter extends BaseAdapter {
         );
       }
 
-      const result = await $`gemini --version`.quiet().nothrow();
+      const result = await $`${[this.commandPath, '--version']}`.quiet().nothrow();
       const latency = Date.now() - startTime;
 
       if (result.exitCode === 0) {
@@ -199,8 +220,9 @@ export class GeminiAdapter extends BaseAdapter {
 
     args.push(prompt);
 
-    if (options?.model) {
-      args.unshift('--model', options.model);
+    const model = options?.model ?? this.getMetadata().defaultModel;
+    if (model) {
+      args.unshift('--model', model);
     }
 
     if (!options?.interactive) {
@@ -217,7 +239,7 @@ export class GeminiAdapter extends BaseAdapter {
     args: string[],
     timeout?: number
   ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
-    const command = ['gemini', ...args];
+    const command = [this.commandPath ?? this.command, ...args];
     const timeoutMs = timeout ?? 300000;
 
     try {
@@ -294,6 +316,8 @@ export class GeminiAdapter extends BaseAdapter {
 /**
  * Factory function
  */
-export function createGeminiAdapter(): GeminiAdapter {
-  return new GeminiAdapter();
+export function createGeminiAdapter(
+  options?: GeminiAdapterOptions
+): GeminiAdapter {
+  return new GeminiAdapter(options);
 }

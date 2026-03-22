@@ -43,12 +43,17 @@ const SessionConfigSchema = z.object({
   ttl: z.number().int().positive().default(86400000), // 24 hours
 });
 
+const PluginsConfigSchema = z.object({
+  directories: z.array(z.string()).default([]),
+});
+
 const ConfigSchema = z.object({
   version: z.string().default('1.0'),
   adapters: z.record(AdapterConfigSchema).default({}),
   orchestrator: OrchestratorConfigSchema.default({}),
   logging: LoggingConfigSchema.default({}),
   session: SessionConfigSchema.default({}),
+  plugins: PluginsConfigSchema.default({}),
 });
 
 // ============================================================================
@@ -59,6 +64,7 @@ export type AdapterConfig = z.infer<typeof AdapterConfigSchema>;
 export type OrchestratorConfig = z.infer<typeof OrchestratorConfigSchema>;
 export type LoggingConfig = z.infer<typeof LoggingConfigSchema>;
 export type SessionConfig = z.infer<typeof SessionConfigSchema>;
+export type PluginsConfig = z.infer<typeof PluginsConfigSchema>;
 export type CLISYSConfig = z.infer<typeof ConfigSchema>;
 
 // ============================================================================
@@ -76,6 +82,10 @@ const DEFAULT_CONFIG: CLISYSConfig = {
       enabled: true,
       command: 'codex',
     },
+    gemini: {
+      enabled: true,
+      command: 'gemini',
+    },
   },
   orchestrator: {
     defaultStrategy: 'capability_based',
@@ -92,6 +102,9 @@ const DEFAULT_CONFIG: CLISYSConfig = {
     persistent: true,
     storagePath: '.clisys/data',
     ttl: 86400000,
+  },
+  plugins: {
+    directories: [],
   },
 };
 
@@ -208,6 +221,7 @@ function mergeConfigs(base: CLISYSConfig, override: CLISYSConfig): CLISYSConfig 
     orchestrator: { ...base.orchestrator, ...override.orchestrator },
     logging: { ...base.logging, ...override.logging },
     session: { ...base.session, ...override.session },
+    plugins: { ...base.plugins, ...override.plugins },
   };
 }
 
