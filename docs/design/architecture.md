@@ -41,7 +41,7 @@ Commands:
 Concrete implementations for each CLI tool:
 - Claude Code Adapter
 - Codex CLI Adapter
-- (Future) Gemini CLI Adapter
+- Gemini CLI Adapter
 - (Future) OpenCode Adapter
 
 ## Data Flow
@@ -134,6 +134,10 @@ command = "claude"
 [adapters.codex]
 enabled = true
 command = "codex"
+
+[adapters.gemini]
+enabled = true
+command = "gemini"
 
 [orchestrator]
 default_strategy = "capability_based"

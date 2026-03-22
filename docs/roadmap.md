@@ -12,16 +12,16 @@ The long-term ambition is not to replace individual AI CLI tools, but to provide
 
 ---
 
-## Current State (v0.1.0)
+## Current State (main branch)
 
 The MVP is production-ready with:
 
 - Core orchestration engine (TaskParser → Dispatcher → Aggregator)
-- Claude Code and Codex CLI adapters
+- Claude Code, Codex CLI, and Gemini CLI adapters
 - Ralph Loop (iterative self-refinement) and Ultrawork Loop (parallel execution)
 - TOML-based configuration with Zod validation
 - SQLite + Drizzle ORM session persistence
-- 24/24 tests passing, TypeScript strict-mode clean
+- 147/147 tests passing, TypeScript strict-mode clean
 
 **Runtime:** TypeScript / Bun (near-native performance; I/O-bound workloads dominate)
 
@@ -31,7 +31,7 @@ The MVP is production-ready with:
 
 ### Phase 1 — MVP ✅ (v0.1.0)
 
-Foundation: core types, orchestrator framework, two adapters, loop mechanisms, config and storage systems.
+Foundation: core types, orchestrator framework, three built-in adapters, loop mechanisms, config and storage systems.
 
 ---
 
@@ -41,7 +41,6 @@ Foundation: core types, orchestrator framework, two adapters, loop mechanisms, c
 
 | Adapter | Status | Notes |
 |---------|--------|-------|
-| Gemini CLI | Planned | Google's CLI AI tool |
 | OpenCode / Oh My OpenAgent | Planned | Key inspiration source; first-class support |
 | Aider | Planned | Git-aware coding assistant |
 | Continue.dev | Under evaluation | IDE-integrated model |
@@ -51,6 +50,7 @@ Foundation: core types, orchestrator framework, two adapters, loop mechanisms, c
 - Each adapter must extend `BaseAdapter` and implement the standard `ExecutionRequest → ExecutionResult` contract.
 - Adapters should be distributable as separate npm packages (`@clisys/adapter-*`) to allow independent versioning.
 - Health-check parallelisation (via `Promise.all`) should land in this phase.
+- The core should expose manifest validation, plugin discovery/loading, provider backends, toolchain gating, audit logging, and trust scoring as first-class extension points.
 
 ---
 
@@ -106,7 +106,7 @@ Foundation: core types, orchestrator framework, two adapters, loop mechanisms, c
 | Sequential health checks in some paths | Low | Replace with `Promise.all`-based parallel checks |
 | No streaming output | Medium | Implement `AsyncGenerator` pipeline (Phase 3) |
 | No adapter isolation / sandboxing | High (long-term) | Container or WASM sandbox (Phase 4) |
-| Missing CLI tests | Medium | Add Vitest-based command tests |
+| Limited CLI integration coverage | Medium | Expand command-level and end-to-end suites |
 | No integration / E2E tests | Low (MVP) | Add in Phase 3 |
 
 ---
@@ -148,4 +148,4 @@ See [CONTRIBUTING.md](../CONTRIBUTING.md) for setup instructions.
 
 ---
 
-*Last updated: 2026-03-18 | Version tracked in `package.json`*
+*Last updated: 2026-03-22 | Version tracked in `package.json`*

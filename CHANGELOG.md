@@ -9,6 +9,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased]
 
 ### Added
+- Gemini CLI adapter is now wired as a first-class built-in adapter across runtime and CLI metadata
+- CLI regression tests covering adapter selection and adapter listing
+- Plugin manifest validation, discovery, loader, provider backends, toolchain gating, audit log, maintenance queue, and SDK foundations
 - Comprehensive `CONTRIBUTING.md` with adapter authoring guide and maintainer onboarding
 - `CODE_OF_CONDUCT.md` (Contributor Covenant v2.1)
 - `SECURITY.md` with responsible disclosure policy and known security considerations
@@ -20,6 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - `.gitignore` entries for AI development tool configs (`.claude/`, `.sisyphus/`, `.cursor/`, `.windsurf/`, `.aider/`) and internal planning docs (`docs/archive/`, `docs/reference/`)
 
 ### Changed
+- Synced README, roadmap, architecture docs, and test badge/status with the current Gemini support and 147 passing tests
 - Redesigned `README.md` with badges, detailed sections, inspirations/credits, multilingual links, and project status table
 - Moved internal brainstorm and analysis documents to `docs/archive/` (gitignored)
 
@@ -51,7 +55,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - `run` command — execute tasks
   - `adapters` command — list and inspect adapters
   - `config` command — view and manage configuration
-- Test suite — 24/24 tests passing (Vitest)
+- Initial test suite — 24/24 tests passing at the v0.1.0 release (Vitest)
 - TypeScript strict mode compilation — 0 errors
 
 [Unreleased]: https://github.com/XucroYuri/CLISYS/compare/v0.1.0...HEAD
