@@ -413,3 +413,8 @@ As the project matures toward v1.0, the maintainers may evaluate a dual-licensin
 *If CLISYS has been useful to you, please consider starring ⭐ the repository — it helps others find the project.*
 
 </div>
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=XucroYuri/CLISYS&type=Date)](https://star-history.com/#XucroYuri/CLISYS&Date)
+
